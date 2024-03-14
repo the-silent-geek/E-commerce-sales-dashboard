@@ -1,11 +1,11 @@
 from taipy.gui import Gui, navigate
 import pandas as pd
 import numpy as np
+from collections import OrderedDict
 
 root_md="<|menu|label=Dashboard|lov={[('Products', 'Products'), ('Orders','Orders'), ('Sales', 'Sales'), ('Reports','Reports')]}|on_action=on_menu|>"
 products="""
 <|Products|>
-
 
 <|{data}|table|> 
 <|{data2}|chart|type=pie|x[1]=0/values|x[2]=1/values|options={options1}|layout={layout}|>
@@ -15,7 +15,8 @@ products="""
 orders="""
 <|Orders|>
 
-
+<|{time_sales}|chart|type=bar|x=Time (nth Hour)|y=No. of Units|layout={layout_bar}|>
+<|{data_device}|chart|type=pie|x[1]=0/values|x[2]=1/values|options={options3}|layout={layout1}|>
 """
 
 sales="""
@@ -101,7 +102,7 @@ options2=[
         # Show label value on hover
         "hoverinfo": "label",
         "title": "Electronic",
-        "hole": 0.2,
+        "hole": 0.3,
         # Place the trace on the right side
         "domain": {"column": 0}
     },
@@ -117,13 +118,76 @@ options2=[
 
 layout = {
     # Show traces in a 1x2 grid
-    "title":"Product distributions",
+    "title":"Products per category distribution",
     "grid": {
         "rows": 1,
         "columns": 2
     },
     "showlegend": False
 }
+
+########### ORDERS ####################################
+
+df['Hour'] = pd.to_datetime(df['Time']).dt.hour
+
+key = df['Hour'].value_counts().keys()
+values = df['Hour'].value_counts()
+time = {}
+
+for i in range(0,len(values)):
+    d = {key[i] : values[i]}
+    time.update(d)
+
+time_sorted = OrderedDict(sorted(time.items()))
+
+time_sales = pd.DataFrame(list(time_sorted.items()), columns=['Time (nth Hour)', 'No. of Units'])
+
+layout_bar={
+   "title": "Units sold per hour the day"
+}
+
+###### ORDER PIE CHART ################################
+
+data_device = [
+    {
+    "values": df['Payment_method'].value_counts(),
+    "labels": df['Payment_method'].unique()
+    },
+    {
+    "values": df['Gender'].value_counts(),
+    "labels": df['Gender'].unique()
+    },
+]
+
+layout1 = {
+    # Show traces in a 1x2 grid
+    "title":"Summary of Orders",
+    "grid": {
+        "rows": 1,
+        "columns": 2
+    },
+    "showlegend": False
+}
+
+options3 = [
+    # First pie chart
+    {
+        # Show label value on hover
+        "hoverinfo": "label",
+        "title": "Payment method",
+        "hole": 0.4,
+        # Place the trace on the left side
+        "domain": {"column": 0}
+    },
+    {
+        # Show label value on hover
+        "hoverinfo": "label",
+        "title": "Gender",
+        "hole": 0.4,
+        # Place the trace on the left side
+        "domain": {"column": 1}
+    },
+]
 
 #######################################################
 def on_menu(state, action, info):
